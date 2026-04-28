@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline UPI — Central Backend Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+        header { background: #1a1d2e; padding: 20px 30px; border-bottom: 1px solid #2d3748; display: flex; align-items: center; gap: 12px; }
+        header h1 { font-size: 1.4rem; font-weight: 600; color: #63b3ed; }
+        header span { font-size: 0.85rem; color: #718096; }
+        .live-dot { width: 10px; height: 10px; background: #48bb78; border-radius: 50%; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; text-align: center; }
+        .stat-card .label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; }
+        .settled { color: #48bb78; }
+        .duplicate { color: #ecc94b; }
+        .invalid { color: #fc8181; }
+        .total { color: #63b3ed; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+        .card h2 { font-size: 1rem; font-weight: 600; color: #a0aec0; margin-bottom: 16px; border-bottom: 1px solid #2d3748; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; color: #718096; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #2d3748; }
+        td { padding: 10px; border-bottom: 1px solid #1e2235; }
+        tr:last-child td { border-bottom: none; }
+        .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .badge-settled { background: #1c4532; color: #48bb78; }
+        .badge-duplicate { background: #4a3800; color: #ecc94b; }
+        .badge-invalid { background: #4a1414; color: #fc8181; }
+        .badge-insufficient { background: #3d1a00; color: #f6ad55; }
+        .refresh-note { font-size: 0.75rem; color: #4a5568; text-align: right; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<header>
+    <div class="live-dot"></div>
+    <h1>Offline UPI — Central Backend</h1>
+    <span id="lastRefresh">Refreshing every 3s...</span>
+</header>
+
+<div class="container">
+    <div class="stats-grid">
+        <div class="stat-card"><div class="label">Settled</div><div class="value settled" id="statSettled">—</div></div>
+        <div class="stat-card"><div class="label">Duplicates Dropped</div><div class="value duplicate" id="statDuplicate">—</div></div>
+        <div class="stat-card"><div class="label">Invalid / Tampered</div><div class="value invalid" id="statInvalid">—</div></div>
+        <div class="stat-card"><div class="label">Total Packets</div><div class="value total" id="statTotal">—</div></div>
+    </div>
+
+    <div class="two-col">
+        <div class="card">
+            <h2>Account Balances</h2>
+            <table>
+                <thead><tr><th>VPA</th><th>Name</th><th>Balance (₹)</th></tr></thead>
+                <tbody id="accountsTable"><tr><td colspan="3">Loading...</td></tr></tbody>
+            </table>
+        </div>
+        <div class="card">
+            <h2>Recent Transactions (last 20)</h2>
+            <table>
+                <thead><tr><th>Sender</th><th>Receiver</th><th>₹</th><th>Edge Node</th><th>Outcome</th></tr></thead>
+                <tbody id="txTable"><tr><td colspan="5">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="refresh-note">Auto-refreshes every 3 seconds</div>
+</div>
+
+<script>
+    function badgeClass(outcome) {
+        if (outcome === 'SETTLED') return 'badge-settled';
+        if (outcome === 'DUPLICATE_DROPPED') return 'badge-duplicate';
+        if (outcome === 'INSUFFICIENT_FUNDS') return 'badge-insufficient';
+        return 'badge-invalid';
+    }
+
+    async function refresh() {
+        try {
+            const [stats, accounts, txs] = await Promise.all([
+                fetch('/api/stats').then(r => r.json()),
+                fetch('/api/accounts').then(r => r.json()),
+                fetch('/api/transactions').then(r => r.json())
+            ]);
+
+            document.getElementById('statSettled').textContent   = stats.settled;
+            document.getElementById('statDuplicate').textContent = stats.duplicateDropped;
+            document.getElementById('statInvalid').textContent   = stats.invalid + stats.insufficientFunds;
+            document.getElementById('statTotal').textContent     = stats.total;
+
+            document.getElementById('accountsTable').innerHTML = accounts.map(a =>
+                `<tr><td>${a.vpa}</td><td>${a.holderName}</td><td>₹${a.balanceRupees.toFixed(2)}</td></tr>`
+            ).join('');
+
+            document.getElementById('txTable').innerHTML = txs.map(t =>
+                `<tr>
+                    <td>${t.senderVpa}</td>
+                    <td>${t.receiverVpa}</td>
+                    <td>₹${t.amountRupees.toFixed(2)}</td>
+                    <td style="font-size:0.75rem;color:#718096">${t.edgeNodeId}</td>
+                    <td><span class="badge ${badgeClass(t.outcome)}">${t.outcome}</span></td>
+                </tr>`
+            ).join('');
+
+            document.getElementById('lastRefresh').textContent =
+                'Last refreshed: ' + new Date().toLocaleTimeString();
+        } catch(e) {
+            console.error('Refresh error:', e);
+        }
+    }
+
+    refresh();
+    setInterval(refresh, 3000);
+</script>
+</body>
+</html>
