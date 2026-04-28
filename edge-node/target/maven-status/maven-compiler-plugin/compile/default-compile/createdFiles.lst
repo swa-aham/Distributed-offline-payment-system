@@ -1,0 +1,10 @@
+com\offlineupi\edge\service\PaymentService$PaymentResult.class
+com\offlineupi\edge\config\EdgeConfig.class
+com\offlineupi\edge\service\WalletManager.class
+com\offlineupi\edge\crypto\ClientCryptoService.class
+com\offlineupi\edge\service\PaymentService.class
+com\offlineupi\edge\controller\PaymentController.class
+com\offlineupi\edge\model\OutboxPacket.class
+com\offlineupi\edge\service\SyncService.class
+com\offlineupi\edge\EdgeNodeApplication.class
+com\offlineupi\edge\model\OutboxRepository.class
