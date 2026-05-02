@@ -3,117 +3,1026 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline UPI — Central Backend Dashboard</title>
+    <title>Offline UPI System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
-        header { background: #1a1d2e; padding: 20px 30px; border-bottom: 1px solid #2d3748; display: flex; align-items: center; gap: 12px; }
-        header h1 { font-size: 1.4rem; font-weight: 600; color: #63b3ed; }
-        header span { font-size: 0.85rem; color: #718096; }
-        .live-dot { width: 10px; height: 10px; background: #48bb78; border-radius: 50%; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; text-align: center; }
-        .stat-card .label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-        .stat-card .value { font-size: 2rem; font-weight: 700; }
-        .settled { color: #48bb78; }
-        .duplicate { color: #ecc94b; }
-        .invalid { color: #fc8181; }
-        .total { color: #63b3ed; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-        .card h2 { font-size: 1rem; font-weight: 600; color: #a0aec0; margin-bottom: 16px; border-bottom: 1px solid #2d3748; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { text-align: left; color: #718096; font-weight: 500; padding: 8px 10px; border-bottom: 1px solid #2d3748; }
-        td { padding: 10px; border-bottom: 1px solid #1e2235; }
-        tr:last-child td { border-bottom: none; }
-        .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-settled { background: #1c4532; color: #48bb78; }
-        .badge-duplicate { background: #4a3800; color: #ecc94b; }
-        .badge-invalid { background: #4a1414; color: #fc8181; }
-        .badge-insufficient { background: #3d1a00; color: #f6ad55; }
-        .refresh-note { font-size: 0.75rem; color: #4a5568; text-align: right; margin-top: 8px; }
+        :root {
+            --bg:       #080c14;
+            --surface:  #0d1320;
+            --border:   #1a2540;
+            --border2:  #243050;
+            --text:     #c8d8f0;
+            --muted:    #4a6080;
+            --green:    #00e5a0;
+            --green-dim:#003d2a;
+            --yellow:   #f5c842;
+            --yellow-dim:#3a2e00;
+            --red:      #ff5a5a;
+            --red-dim:  #3a0f0f;
+            --blue:     #4d9fff;
+            --blue-dim: #0d2240;
+            --orange:   #ff8c42;
+            --mono:     'Space Mono', monospace;
+            --sans:     'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* grid bg */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                    linear-gradient(rgba(77,159,255,0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(77,159,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Header ── */
+        header {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 60px;
+            background: rgba(13,19,32,0.95);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .logo {
+            font-family: var(--mono);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--green);
+            letter-spacing: -0.5px;
+        }
+        .logo span { color: var(--muted); }
+        .live-pill {
+            display: flex; align-items: center; gap: 6px;
+            padding: 3px 10px;
+            background: var(--green-dim);
+            border: 1px solid rgba(0,229,160,0.2);
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-family: var(--mono);
+            color: var(--green);
+            letter-spacing: 0.05em;
+        }
+        .live-dot {
+            width: 6px; height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+        .last-refresh { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
+
+        /* ── Layout ── */
+        .page { position: relative; z-index: 1; max-width: 1400px; margin: 0 auto; padding: 28px 32px; }
+
+        /* ── Stat strip ── */
+        .stat-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+        .stat-card.green::after { background: var(--green); }
+        .stat-card.yellow::after { background: var(--yellow); }
+        .stat-card.red::after { background: var(--red); }
+        .stat-card.blue::after { background: var(--blue); }
+        .stat-label {
+            font-size: 0.68rem;
+            font-family: var(--mono);
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+        .stat-value {
+            font-family: var(--mono);
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-card.green .stat-value { color: var(--green); }
+        .stat-card.yellow .stat-value { color: var(--yellow); }
+        .stat-card.red .stat-value { color: var(--red); }
+        .stat-card.blue .stat-value { color: var(--blue); }
+
+        /* ── Main grid ── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 20px;
+        }
+
+        /* ── Panel ── */
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .panel-title {
+            font-size: 0.78rem;
+            font-family: var(--mono);
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .panel-body { padding: 20px; }
+
+        /* ── Node cards ── */
+        .nodes-panel { grid-column: 1; }
+        .node-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .node-card:last-child { margin-bottom: 0; }
+        .node-card.offline {
+            border-color: rgba(255,90,90,0.3);
+            box-shadow: 0 0 0 1px rgba(255,90,90,0.1);
+        }
+        .node-card.online {
+            border-color: rgba(0,229,160,0.2);
+        }
+        .node-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .node-id {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--blue);
+        }
+        .node-status {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.68rem;
+            font-family: var(--mono);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .node-status.online { background: var(--green-dim); color: var(--green); }
+        .node-status.offline { background: var(--red-dim); color: var(--red); }
+        .node-status-dot { width: 5px; height: 5px; border-radius: 50%; }
+        .node-status.online .node-status-dot { background: var(--green); }
+        .node-status.offline .node-status-dot { background: var(--red); }
+
+        .node-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .meta-item {}
+        .meta-label { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); margin-bottom: 2px; }
+        .meta-value { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+        .meta-value.green { color: var(--green); }
+        .meta-value.yellow { color: var(--yellow); }
+
+        .node-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: 1px solid;
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-green {
+            background: var(--green-dim);
+            border-color: rgba(0,229,160,0.3);
+            color: var(--green);
+        }
+        .btn-green:hover:not(:disabled) { background: rgba(0,229,160,0.15); border-color: var(--green); }
+
+        .btn-red {
+            background: var(--red-dim);
+            border-color: rgba(255,90,90,0.3);
+            color: var(--red);
+        }
+        .btn-red:hover:not(:disabled) { background: rgba(255,90,90,0.15); border-color: var(--red); }
+
+        .btn-blue {
+            background: var(--blue-dim);
+            border-color: rgba(77,159,255,0.3);
+            color: var(--blue);
+        }
+        .btn-blue:hover:not(:disabled) { background: rgba(77,159,255,0.15); border-color: var(--blue); }
+
+        .btn-yellow {
+            background: var(--yellow-dim);
+            border-color: rgba(245,200,66,0.3);
+            color: var(--yellow);
+        }
+        .btn-yellow:hover:not(:disabled) { background: rgba(245,200,66,0.15); border-color: var(--yellow); }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: var(--border2);
+            color: var(--muted);
+        }
+        .btn-ghost:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+
+        /* ── Right column ── */
+        .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+        /* ── Pay form ── */
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-label { font-size: 0.68rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+        .form-select, .form-input {
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 7px;
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 0.85rem;
+            padding: 9px 12px;
+            outline: none;
+            transition: border-color 0.15s;
+            width: 100%;
+            appearance: none;
+        }
+        .form-select:focus, .form-input:focus { border-color: var(--blue); }
+
+        .quick-amounts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .quick-amt {
+            padding: 5px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border2);
+            border-radius: 5px;
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .quick-amt:hover { border-color: var(--blue); color: var(--blue); }
+
+        .btn-pay {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(77,159,255,0.15));
+            border: 1px solid rgba(0,229,160,0.3);
+            border-radius: 8px;
+            color: var(--green);
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+            transition: all 0.15s;
+        }
+        .btn-pay:hover { background: linear-gradient(135deg, rgba(0,229,160,0.25), rgba(77,159,255,0.25)); border-color: var(--green); }
+        .btn-pay:active { transform: scale(0.99); }
+        .btn-pay:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── Accounts ── */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+        }
+        .account-chip {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 10px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        .account-chip.changed { border-color: var(--green); animation: balanceFlash 1s ease; }
+        @keyframes balanceFlash {
+            0%,100% { box-shadow: none; }
+            50% { box-shadow: 0 0 12px rgba(0,229,160,0.3); }
+        }
+        .account-name { font-size: 0.7rem; color: var(--muted); margin-bottom: 4px; font-family: var(--mono); }
+        .account-balance {
+            font-family: var(--mono);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text);
+            transition: color 0.3s;
+        }
+        .account-balance.up { color: var(--green); }
+        .account-balance.down { color: var(--red); }
+        .account-vpa { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
+
+        /* ── Transaction feed ── */
+        .tx-feed { max-height: 280px; overflow-y: auto; }
+        .tx-feed::-webkit-scrollbar { width: 4px; }
+        .tx-feed::-webkit-scrollbar-track { background: transparent; }
+        .tx-feed::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+        .tx-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            animation: slideIn 0.3s ease;
+        }
+        .tx-row:last-child { border-bottom: none; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+        .tx-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+        .tx-icon.settled { background: var(--green-dim); color: var(--green); }
+        .tx-icon.duplicate { background: var(--yellow-dim); color: var(--yellow); }
+        .tx-icon.invalid { background: var(--red-dim); color: var(--red); }
+        .tx-details { flex: 1; min-width: 0; }
+        .tx-parties {
+            font-size: 0.78rem;
+            color: var(--text);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .tx-meta { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+        .tx-amount {
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--green);
+            flex-shrink: 0;
+        }
+        .badge {
+            font-size: 0.62rem;
+            font-family: var(--mono);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .badge-settled { background: var(--green-dim); color: var(--green); }
+        .badge-duplicate { background: var(--yellow-dim); color: var(--yellow); }
+        .badge-invalid { background: var(--red-dim); color: var(--red); }
+        .badge-insufficient { background: #3d1a00; color: var(--orange); }
+
+        /* ── Activity log ── */
+        .log-panel { margin-top: 0; }
+        .log-feed {
+            max-height: 160px;
+            overflow-y: auto;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            line-height: 1.8;
+        }
+        .log-feed::-webkit-scrollbar { width: 3px; }
+        .log-feed::-webkit-scrollbar-thumb { background: var(--border2); }
+        .log-entry { display: flex; gap: 10px; }
+        .log-time { color: var(--muted); flex-shrink: 0; }
+        .log-entry.info .log-msg { color: var(--text); }
+        .log-entry.success .log-msg { color: var(--green); }
+        .log-entry.warn .log-msg { color: var(--yellow); }
+        .log-entry.error .log-msg { color: var(--red); }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 28px; right: 28px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            font-weight: 700;
+            z-index: 1000;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.25s;
+            pointer-events: none;
+            max-width: 340px;
+        }
+        #toast.show { transform: none; opacity: 1; }
+        #toast.success { background: var(--green-dim); border: 1px solid rgba(0,229,160,0.4); color: var(--green); }
+        #toast.error   { background: var(--red-dim);   border: 1px solid rgba(255,90,90,0.4);  color: var(--red); }
+        #toast.info    { background: var(--blue-dim);  border: 1px solid rgba(77,159,255,0.4); color: var(--blue); }
+        #toast.warn    { background: var(--yellow-dim);border: 1px solid rgba(245,200,66,0.4); color: var(--yellow); }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 14px;
+            padding: 28px;
+            width: 380px;
+            animation: modalIn 0.2s ease;
+        }
+        @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: none; opacity: 1; } }
+        .modal h3 { font-family: var(--mono); font-size: 0.9rem; margin-bottom: 20px; color: var(--text); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-actions .btn { flex: 1; padding: 10px; justify-content: center; }
+
+        /* ── Pending badge ── */
+        .pending-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background: var(--yellow-dim);
+            border: 1px solid rgba(245,200,66,0.3);
+            border-radius: 9px;
+            font-size: 0.65rem;
+            font-family: var(--mono);
+            font-weight: 700;
+            color: var(--yellow);
+            margin-left: 6px;
+        }
+
+        /* ── Divider ── */
+        .section-gap { height: 20px; }
+
+        /* ── Wallet bar ── */
+        .wallet-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .wallet-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--green), var(--blue));
+            transition: width 0.4s ease;
+        }
     </style>
 </head>
 <body>
+
 <header>
-    <div class="live-dot"></div>
-    <h1>Offline UPI — Central Backend</h1>
-    <span id="lastRefresh">Refreshing every 3s...</span>
+    <div class="header-left">
+        <div class="logo">OFFLINE<span>/</span>UPI</div>
+        <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    </div>
+    <div class="last-refresh" id="lastRefresh">connecting...</div>
 </header>
 
-<div class="container">
-    <div class="stats-grid">
-        <div class="stat-card"><div class="label">Settled</div><div class="value settled" id="statSettled">—</div></div>
-        <div class="stat-card"><div class="label">Duplicates Dropped</div><div class="value duplicate" id="statDuplicate">—</div></div>
-        <div class="stat-card"><div class="label">Invalid / Tampered</div><div class="value invalid" id="statInvalid">—</div></div>
-        <div class="stat-card"><div class="label">Total Packets</div><div class="value total" id="statTotal">—</div></div>
+<div class="page">
+
+    <!-- Stat strip -->
+    <div class="stat-strip">
+        <div class="stat-card green">
+            <div class="stat-label">Settled</div>
+            <div class="stat-value" id="statSettled">—</div>
+        </div>
+        <div class="stat-card yellow">
+            <div class="stat-label">Duplicate Dropped</div>
+            <div class="stat-value" id="statDuplicate">—</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-label">Invalid / Tampered</div>
+            <div class="stat-value" id="statInvalid">—</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-label">Total Packets</div>
+            <div class="stat-value" id="statTotal">—</div>
+        </div>
     </div>
 
-    <div class="two-col">
-        <div class="card">
-            <h2>Account Balances</h2>
-            <table>
-                <thead><tr><th>VPA</th><th>Name</th><th>Balance (₹)</th></tr></thead>
-                <tbody id="accountsTable"><tr><td colspan="3">Loading...</td></tr></tbody>
-            </table>
+    <div class="main-grid">
+
+        <!-- LEFT: Nodes + Pay form -->
+        <div class="left-col">
+
+            <!-- Edge Nodes -->
+            <div class="panel nodes-panel" style="margin-bottom:20px;">
+                <div class="panel-header">
+                    <div class="panel-title">Edge Nodes</div>
+                    <div style="font-size:0.68rem;color:var(--muted);font-family:var(--mono);">Port 8081 · 8082</div>
+                </div>
+                <div class="panel-body" id="nodesContainer">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Pay Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Send Payment</div>
+                    <div style="font-size:0.68rem;color:var(--muted);font-family:var(--mono);">via edge node</div>
+                </div>
+                <div class="panel-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <div class="form-label">From (Edge Node)</div>
+                            <select class="form-select" id="payNode">
+                                <option value="8081">edge-node-1 (alice)</option>
+                                <option value="8082">edge-node-2 (bob)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-label">Sender VPA</div>
+                            <select class="form-select" id="paySender">
+                                <option value="alice@upi">alice@upi</option>
+                                <option value="bob@upi">bob@upi</option>
+                                <option value="carol@upi">carol@upi</option>
+                                <option value="dave@upi">dave@upi</option>
+                                <option value="eve@upi">eve@upi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <div class="form-label">Receiver VPA</div>
+                            <select class="form-select" id="payReceiver">
+                                <option value="bob@upi">bob@upi</option>
+                                <option value="alice@upi">alice@upi</option>
+                                <option value="carol@upi">carol@upi</option>
+                                <option value="dave@upi">dave@upi</option>
+                                <option value="eve@upi">eve@upi</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <div class="form-label">Amount (₹)</div>
+                            <input class="form-input" type="number" id="payAmount" value="100" min="1">
+                        </div>
+                    </div>
+                    <div class="quick-amounts">
+                        <div class="quick-amt" onclick="setAmount(50)">₹50</div>
+                        <div class="quick-amt" onclick="setAmount(100)">₹100</div>
+                        <div class="quick-amt" onclick="setAmount(200)">₹200</div>
+                        <div class="quick-amt" onclick="setAmount(500)">₹500</div>
+                        <div class="quick-amt" onclick="setAmount(1000)">₹1000</div>
+                    </div>
+                    <button class="btn-pay" id="btnPay" onclick="sendPayment()">⚡ SEND PAYMENT</button>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="panel log-panel" style="margin-top:20px;">
+                <div class="panel-header">
+                    <div class="panel-title">Activity Log</div>
+                    <button class="btn btn-ghost" style="font-size:0.65rem;padding:4px 10px;" onclick="clearLog()">CLEAR</button>
+                </div>
+                <div class="panel-body" style="padding:14px 20px;">
+                    <div class="log-feed" id="logFeed">
+                        <div class="log-entry info"><span class="log-time">--:--:--</span><span class="log-msg">Dashboard initializing...</span></div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        <div class="card">
-            <h2>Recent Transactions (last 20)</h2>
-            <table>
-                <thead><tr><th>Sender</th><th>Receiver</th><th>₹</th><th>Edge Node</th><th>Outcome</th></tr></thead>
-                <tbody id="txTable"><tr><td colspan="5">Loading...</td></tr></tbody>
-            </table>
+
+        <!-- RIGHT: Accounts + Transactions -->
+        <div class="right-col">
+
+            <!-- Accounts -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">Account Balances</div>
+                    <div style="font-size:0.68rem;color:var(--muted);font-family:var(--mono);">live · auto-refresh</div>
+                </div>
+                <div class="panel-body">
+                    <div class="accounts-grid" id="accountsGrid">
+                        <!-- rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Feed -->
+            <div class="panel" style="flex:1;">
+                <div class="panel-header">
+                    <div class="panel-title">Transaction Feed</div>
+                    <div style="font-size:0.68rem;color:var(--muted);font-family:var(--mono);">last 20</div>
+                </div>
+                <div class="panel-body" style="padding: 8px 20px;">
+                    <div class="tx-feed" id="txFeed">
+                        <!-- rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
-    <div class="refresh-note">Auto-refreshes every 3 seconds</div>
 </div>
 
+<!-- Wallet Top-up Modal -->
+<div class="modal-overlay" id="walletModal">
+    <div class="modal">
+        <h3>💳 SET WALLET BALANCE</h3>
+        <div class="form-group" style="margin-bottom:12px;">
+            <div class="form-label">Edge Node</div>
+            <select class="form-select" id="walletNode">
+                <option value="8081">edge-node-1 (alice)</option>
+                <option value="8082">edge-node-2 (bob)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <div class="form-label">Wallet Amount (₹)</div>
+            <input class="form-input" type="number" id="walletAmount" value="1000">
+        </div>
+        <div class="quick-amounts" style="margin-top:10px;">
+            <div class="quick-amt" onclick="document.getElementById('walletAmount').value=500">₹500</div>
+            <div class="quick-amt" onclick="document.getElementById('walletAmount').value=1000">₹1000</div>
+            <div class="quick-amt" onclick="document.getElementById('walletAmount').value=2000">₹2000</div>
+            <div class="quick-amt" onclick="document.getElementById('walletAmount').value=5000">₹5000</div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeModal('walletModal')">CANCEL</button>
+            <button class="btn btn-green" onclick="confirmWalletSet()">SET WALLET</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
 <script>
-    function badgeClass(outcome) {
-        if (outcome === 'SETTLED') return 'badge-settled';
-        if (outcome === 'DUPLICATE_DROPPED') return 'badge-duplicate';
-        if (outcome === 'INSUFFICIENT_FUNDS') return 'badge-insufficient';
-        return 'badge-invalid';
+    // ── State ──────────────────────────────────────────────────────────────────
+    const NODES = [
+        { id: 'edge-node-1', port: 8081, ownerVpa: 'alice@upi', label: 'Terminal 1' },
+        { id: 'edge-node-2', port: 8082, ownerVpa: 'bob@upi',   label: 'Terminal 2' },
+    ];
+
+    let nodeStatus   = {};  // port -> status object
+    let prevBalances = {};  // vpa -> balancePaise
+    let prevTxIds    = new Set();
+    let txHistory    = [];
+
+    // ── Fetch helpers ──────────────────────────────────────────────────────────
+    async function api(url, method = 'GET', body = null) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
+        const r = await fetch(url, opts);
+        return r.json().catch(() => ({}));
     }
 
-    async function refresh() {
+    async function edgeApi(port, path, method = 'GET', body = null) {
+        const opts = { method, headers: { 'Content-Type': 'application/json' } };
+        if (body) opts.body = JSON.stringify(body);
         try {
-            const [stats, accounts, txs] = await Promise.all([
-                fetch('/api/stats').then(r => r.json()),
-                fetch('/api/accounts').then(r => r.json()),
-                fetch('/api/transactions').then(r => r.json())
-            ]);
-
-            document.getElementById('statSettled').textContent   = stats.settled;
-            document.getElementById('statDuplicate').textContent = stats.duplicateDropped;
-            document.getElementById('statInvalid').textContent   = stats.invalid + stats.insufficientFunds;
-            document.getElementById('statTotal').textContent     = stats.total;
-
-            document.getElementById('accountsTable').innerHTML = accounts.map(a =>
-                `<tr><td>${a.vpa}</td><td>${a.holderName}</td><td>₹${a.balanceRupees.toFixed(2)}</td></tr>`
-            ).join('');
-
-            document.getElementById('txTable').innerHTML = txs.map(t =>
-                `<tr>
-                    <td>${t.senderVpa}</td>
-                    <td>${t.receiverVpa}</td>
-                    <td>₹${t.amountRupees.toFixed(2)}</td>
-                    <td style="font-size:0.75rem;color:#718096">${t.edgeNodeId}</td>
-                    <td><span class="badge ${badgeClass(t.outcome)}">${t.outcome}</span></td>
-                </tr>`
-            ).join('');
-
-            document.getElementById('lastRefresh').textContent =
-                'Last refreshed: ' + new Date().toLocaleTimeString();
-        } catch(e) {
-            console.error('Refresh error:', e);
+            const r = await fetch(`http://localhost:${port}${path}`, opts);
+            return r.json().catch(() => ({}));
+        } catch (e) {
+            return null;
         }
     }
 
-    refresh();
-    setInterval(refresh, 3000);
+    // ── Toast ──────────────────────────────────────────────────────────────────
+    let toastTimer;
+    function toast(msg, type = 'info') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = `show ${type}`;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.className = '', 3200);
+    }
+
+    // ── Activity log ───────────────────────────────────────────────────────────
+    function log(msg, type = 'info') {
+        const feed = document.getElementById('logFeed');
+        const now  = new Date().toLocaleTimeString('en-GB');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.innerHTML = `<span class="log-time">${now}</span><span class="log-msg">${msg}</span>`;
+        feed.insertBefore(entry, feed.firstChild);
+        if (feed.children.length > 40) feed.lastChild.remove();
+    }
+    function clearLog() {
+        document.getElementById('logFeed').innerHTML = '';
+    }
+
+    // ── Render nodes ───────────────────────────────────────────────────────────
+    function renderNodes() {
+        const container = document.getElementById('nodesContainer');
+        container.innerHTML = NODES.map(node => {
+            const s = nodeStatus[node.port];
+            const online    = s && !s.offlineMode;
+            const wallet    = s ? s.walletBalanceRupees : 0;
+            const maxWallet = 2000;
+            const pct       = Math.min(100, (wallet / maxWallet) * 100);
+            const pending   = s ? s.pendingPackets  : 0;
+            const delivered = s ? s.deliveredPackets : 0;
+            const reachable = s !== null && s !== undefined;
+
+            return `
+    <div class="node-card ${reachable ? (online ? 'online' : 'offline') : ''}">
+      <div class="node-top">
+        <div class="node-id">${node.id}</div>
+        <div class="node-status ${reachable ? (online ? 'online' : 'offline') : 'offline'}">
+          <div class="node-status-dot"></div>
+          ${!reachable ? 'UNREACHABLE' : online ? 'ONLINE' : 'OFFLINE'}
+        </div>
+      </div>
+      <div class="node-meta">
+        <div class="meta-item">
+          <div class="meta-label">Wallet</div>
+          <div class="meta-value green">₹${reachable ? wallet.toFixed(0) : '—'}</div>
+          <div class="wallet-bar"><div class="wallet-fill" style="width:${pct}%"></div></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Owner</div>
+          <div class="meta-value">${node.ownerVpa}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Pending</div>
+          <div class="meta-value yellow">${reachable ? pending : '—'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Delivered</div>
+          <div class="meta-value green">${reachable ? delivered : '—'}</div>
+        </div>
+      </div>
+      <div class="node-actions">
+        ${reachable ? `
+          <button class="btn ${online ? 'btn-red' : 'btn-green'}"
+            onclick="toggleOffline(${node.port}, ${online})">
+            ${online ? '📴 GO OFFLINE' : '📶 GO ONLINE'}
+          </button>
+          <button class="btn btn-blue" onclick="triggerSync(${node.port})" ${online ? '' : 'disabled'}>
+            🔄 SYNC NOW
+          </button>
+          <button class="btn btn-yellow" onclick="openWalletModal(${node.port})">
+            💳 WALLET
+          </button>
+        ` : `<span style="font-size:0.7rem;color:var(--muted);font-family:var(--mono);">Start edge node on port ${node.port}</span>`}
+      </div>
+    </div>`;
+        }).join('');
+    }
+
+    // ── Node actions ───────────────────────────────────────────────────────────
+    async function toggleOffline(port, currentlyOnline) {
+        const goOffline = currentlyOnline;
+        const res = await edgeApi(port, '/api/offline', 'POST', { offline: goOffline });
+        if (res) {
+            const node = NODES.find(n => n.port === port);
+            if (goOffline) {
+                log(`${node.id} went OFFLINE — payments will queue locally`, 'warn');
+                toast(`${node.id} is now OFFLINE`, 'warn');
+            } else {
+                log(`${node.id} came ONLINE — syncing queued payments`, 'success');
+                toast(`${node.id} is now ONLINE`, 'success');
+            }
+            await refreshNodeStatus();
+        }
+    }
+
+    async function triggerSync(port) {
+        const node = NODES.find(n => n.port === port);
+        log(`Triggering sync on ${node.id}...`, 'info');
+        const res = await edgeApi(port, '/api/sync', 'POST', {});
+        if (res) {
+            log(`Sync complete on ${node.id}`, 'success');
+            toast('Sync triggered — watch balances update', 'info');
+        }
+    }
+
+    // ── Wallet modal ───────────────────────────────────────────────────────────
+    function openWalletModal(port) {
+        document.getElementById('walletNode').value = port;
+        document.getElementById('walletModal').classList.add('open');
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+    }
+    async function confirmWalletSet() {
+        const port   = parseInt(document.getElementById('walletNode').value);
+        const amount = parseFloat(document.getElementById('walletAmount').value);
+        if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return; }
+        const paise = Math.round(amount * 100);
+        const res   = await edgeApi(port, '/api/wallet/set', 'POST', { amountPaise: paise });
+        const node  = NODES.find(n => n.port === port);
+        if (res) {
+            log(`Wallet set to ₹${amount} on ${node.id}`, 'success');
+            toast(`Wallet set to ₹${amount}`, 'success');
+            closeModal('walletModal');
+            await refreshNodeStatus();
+        } else {
+            toast('Failed to set wallet', 'error');
+        }
+    }
+
+    // ── Send payment ───────────────────────────────────────────────────────────
+    function setAmount(v) { document.getElementById('payAmount').value = v; }
+
+    async function sendPayment() {
+        const port     = parseInt(document.getElementById('payNode').value);
+        const sender   = document.getElementById('paySender').value;
+        const receiver = document.getElementById('payReceiver').value;
+        const amount   = parseFloat(document.getElementById('payAmount').value);
+
+        if (sender === receiver) { toast('Sender and receiver must be different', 'error'); return; }
+        if (!amount || amount <= 0) { toast('Enter a valid amount', 'error'); return; }
+
+        const paise  = Math.round(amount * 100);
+        const btn    = document.getElementById('btnPay');
+        btn.disabled = true;
+        btn.textContent = 'SENDING...';
+
+        const node = NODES.find(n => n.port === port);
+        const res  = await edgeApi(port, '/api/pay', 'POST', {
+            senderVpa: sender, receiverVpa: receiver, amountPaise: paise
+        });
+
+        btn.disabled = false;
+        btn.textContent = '⚡ SEND PAYMENT';
+
+        if (!res) {
+            toast(`${node.id} is unreachable. Is it running?`, 'error');
+            log(`Payment failed — ${node.id} unreachable`, 'error');
+            return;
+        }
+
+        if (res.success) {
+            const ns  = nodeStatus[port];
+            const offline = ns && ns.offlineMode;
+            if (offline) {
+                log(`Payment queued offline: ${sender} → ${receiver} ₹${amount} via ${node.id}`, 'warn');
+                toast(`₹${amount} queued — node is offline`, 'warn');
+            } else {
+                log(`Payment sent: ${sender} → ${receiver} ₹${amount} via ${node.id}`, 'success');
+                toast(`₹${amount} sent from ${sender} to ${receiver}`, 'success');
+            }
+            await refreshNodeStatus();
+        } else {
+            log(`Payment rejected: ${res.message}`, 'error');
+            toast(res.message || 'Payment failed', 'error');
+        }
+    }
+
+    // ── Render accounts ────────────────────────────────────────────────────────
+    function renderAccounts(accounts) {
+        const grid = document.getElementById('accountsGrid');
+        grid.innerHTML = accounts.map(a => {
+            const vpa   = a.vpa;
+            const bal   = a.balancePaise || Math.round(a.balanceRupees * 100);
+            const prev  = prevBalances[vpa];
+            let cls = '';
+            if (prev !== undefined && bal > prev) cls = 'up';
+            if (prev !== undefined && bal < prev) cls = 'down';
+            prevBalances[vpa] = bal;
+
+            const name = a.holderName.split(' ')[0];
+            return `
+    <div class="account-chip ${cls ? 'changed' : ''}">
+      <div class="account-name">${name}</div>
+      <div class="account-balance ${cls}">₹${a.balanceRupees.toFixed(0)}</div>
+      <div class="account-vpa">${vpa}</div>
+    </div>`;
+        }).join('');
+    }
+
+    // ── Render transactions ────────────────────────────────────────────────────
+    function txIcon(outcome) {
+        if (outcome === 'SETTLED')           return { cls: 'settled',   icon: '✓' };
+        if (outcome === 'DUPLICATE_DROPPED') return { cls: 'duplicate', icon: '⊘' };
+        return                                      { cls: 'invalid',   icon: '✕' };
+    }
+    function badgeCls(outcome) {
+        if (outcome === 'SETTLED')           return 'badge-settled';
+        if (outcome === 'DUPLICATE_DROPPED') return 'badge-duplicate';
+        if (outcome === 'INSUFFICIENT_FUNDS')return 'badge-insufficient';
+        return 'badge-invalid';
+    }
+
+    function renderTransactions(txs) {
+        const feed = document.getElementById('txFeed');
+
+        // detect new ones
+        const newIds = txs.map(t => t.id).filter(id => !prevTxIds.has(id));
+        newIds.forEach(id => {
+            const tx = txs.find(t => t.id === id);
+            if (prevTxIds.size > 0) { // skip on first load
+                log(`SETTLED: ${tx.senderVpa} → ${tx.receiverVpa} ₹${tx.amountRupees} [${tx.edgeNodeId}]`, 'success');
+            }
+            prevTxIds.add(id);
+        });
+
+        feed.innerHTML = txs.map(t => {
+            const { cls, icon } = txIcon(t.outcome);
+            const time = new Date(t.settledAt).toLocaleTimeString('en-GB');
+            return `
+    <div class="tx-row">
+      <div class="tx-icon ${cls}">${icon}</div>
+      <div class="tx-details">
+        <div class="tx-parties">${t.senderVpa} → ${t.receiverVpa}</div>
+        <div class="tx-meta">${t.edgeNodeId} · ${time}</div>
+      </div>
+      <div class="tx-amount">₹${t.amountRupees.toFixed(2)}</div>
+      <span class="badge ${badgeCls(t.outcome)}">${t.outcome.replace('_',' ')}</span>
+    </div>`;
+        }).join('');
+    }
+
+    // ── Refresh loops ──────────────────────────────────────────────────────────
+    async function refreshNodeStatus() {
+        await Promise.all(NODES.map(async node => {
+            const s = await edgeApi(node.port, '/api/status');
+            nodeStatus[node.port] = s;
+        }));
+        renderNodes();
+    }
+
+    async function refreshBackend() {
+        try {
+            const [stats, accounts, txs] = await Promise.all([
+                api('/api/stats'),
+                api('/api/accounts'),
+                api('/api/transactions'),
+            ]);
+
+            document.getElementById('statSettled').textContent   = stats.settled   ?? '—';
+            document.getElementById('statDuplicate').textContent = stats.duplicateDropped ?? '—';
+            document.getElementById('statInvalid').textContent   = (stats.invalid ?? 0) + (stats.insufficientFunds ?? 0);
+            document.getElementById('statTotal').textContent     = stats.total     ?? '—';
+
+            renderAccounts(accounts);
+            renderTransactions(txs);
+
+            document.getElementById('lastRefresh').textContent =
+                'Updated ' + new Date().toLocaleTimeString('en-GB');
+        } catch(e) {
+            document.getElementById('lastRefresh').textContent = 'backend unreachable';
+        }
+    }
+
+    async function tick() {
+        await refreshBackend();
+        await refreshNodeStatus();
+    }
+
+    // Initial load + intervals
+    tick();
+    setInterval(refreshBackend, 3000);
+    setInterval(refreshNodeStatus, 4000);
+
+    // Log init
+    setTimeout(() => log('Connected to central backend', 'success'), 600);
+    setTimeout(() => log('Polling edge nodes on ports 8081, 8082', 'info'), 900);
 </script>
 </body>
 </html>
